@@ -80,3 +80,19 @@ func TestCut(t *testing.T) {
 	// Content
 	checkContent(fileName+".p0", fileName+".p1", t)
 }
+
+func TestJoin(t *testing.T) {
+	chunkName := "./test_data/data.txt.p0"
+	destFolder := "test_data/join"
+	err := Join(chunkName, destFolder)
+	if err != nil {
+		t.Fatalf("Error joining file %s: %s", chunkName, err)
+	}
+
+	buf1, _ := os.ReadFile("./test_data/data.txt")
+	buf2, _ := os.ReadFile("./test_data/join/data.txt")
+
+	if !reflect.DeepEqual(buf1, buf2) {
+		t.Fatalf("Bad format of joined file")
+	}
+}
