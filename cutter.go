@@ -8,6 +8,8 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 const VERSION uint16 = 1
@@ -51,6 +53,87 @@ func Cut(filePath string, folder string, chunks uint32) error {
 	}
 
 	return nil
+}
+
+func Join(chunkPath string, destFolder string) error {
+
+	// Check file name of file 0, should be *.p0
+	if !strings.HasSuffix(chunkPath, ".p0") {
+		return errors.New("not file zero. Please, open the file with extension .p0")
+	}
+
+	destName := filepath.Join(destFolder, strings.TrimSuffix(filepath.Base(chunkPath), ".p0"))
+	chunkBaseName := strings.TrimSuffix(chunkPath, "0")
+	chunk := 0
+	isLast := false
+
+	destFile, err := os.OpenFile(destName, os.O_APPEND|os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	for !isLast {
+		chunkPath = chunkBaseName + strconv.Itoa(chunk)
+		isLast, err = copyChunk(destFile, chunkPath)
+		if err != nil {
+			return err
+		}
+		chunk++
+	}
+
+	return nil
+}
+
+func copyChunk(destFile *os.File, chunkPath string) (bool, error) {
+	headerSize := 16
+	isLast := false
+	bufferSize := 5 * 1024 * 1024 // 5Mb
+
+	buf := make([]byte, headerSize)
+	chunkFile, err := os.Open(chunkPath)
+	if err != nil {
+		return isLast, err
+	}
+	defer chunkFile.Close()
+	chunkFile.Read(buf)
+
+	header, err := readHeader(buf)
+	if err != nil {
+		return isLast, err
+	}
+	isLast = (header.Chunk >= header.Chunks-1)
+
+	buf = make([]byte, bufferSize)
+
+	for {
+		n, err := chunkFile.Read(buf)
+		if err != nil && err != io.EOF {
+			return isLast, err
+		}
+		if n == 0 {
+			break
+		}
+		_, err = destFile.Write(buf[:n])
+		if err != nil {
+			return isLast, err
+		}
+	}
+
+	return isLast, nil
+}
+
+func readHeader(header []byte) (Header, error) {
+	h := Header{}
+	h.Id = string(header[:6])
+	if h.Id != FILE_ID {
+		return h, errors.New("unknown file type")
+	}
+	h.Chunk = binary.LittleEndian.Uint32(header[6:10])
+	h.Chunks = binary.LittleEndian.Uint32(header[10:14])
+	h.Version = binary.LittleEndian.Uint16(header[14:16])
+
+	return h, nil
 }
 
 func getChunkSize(file *os.File, chunks uint32) (int64, error) {
