@@ -62,6 +62,10 @@ func Join(chunkPath string, destFolder string) error {
 		return errors.New("not file zero. Please, open the file with extension .p0")
 	}
 
+	if !fileExist(chunkPath) {
+		return errors.New("no such file")
+	}
+
 	destName := filepath.Join(destFolder, strings.TrimSuffix(filepath.Base(chunkPath), ".p0"))
 	chunkBaseName := strings.TrimSuffix(chunkPath, "0")
 	chunk := 0
@@ -83,6 +87,15 @@ func Join(chunkPath string, destFolder string) error {
 	}
 
 	return nil
+}
+
+func fileExist(filePath string) bool {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	return true
 }
 
 func copyChunk(destFile *os.File, chunkPath string) (bool, error) {
