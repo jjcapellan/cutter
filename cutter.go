@@ -22,6 +22,12 @@ type Header struct {
 	Version uint16
 }
 
+// Cut divides a file into multiple chunks and saves them in a specified folder.
+// Parameters:
+// - filePath: the path to the file to be divided into chunks.
+// - folder: the folder where the file chunks will be saved.
+// - chunks: the number of chunks the file will be divided into.
+// Returns an error if any problem occurs during the file division.
 func Cut(filePath string, folder string, chunks uint32) error {
 	if chunks < 2 {
 		return errors.New("number of chunks must be greater than 1")
@@ -55,6 +61,11 @@ func Cut(filePath string, folder string, chunks uint32) error {
 	return nil
 }
 
+// Join combines previously divided file chunks into a single file and saves it in a specified folder.
+// Parameters:
+// - chunkPath: the path to the first chunk of the file (should have the suffix ".p0").
+// - destFolder: the folder where the combined file will be saved.
+// Returns an error if any problem occurs during the combination of file chunks.
 func Join(chunkPath string, destFolder string) error {
 
 	// Check file name of file 0, should be *.p0
